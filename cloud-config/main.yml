@@ -1,0 +1,13 @@
+#cloud-config
+users:
+  - name: mhg
+    ssh-authorized-keys:
+      - ${authorized_key}
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    groups: sudo
+    shell: /bin/bash
+runcmd:
+  - sed -i -e '/^Port/s/^.*$/Port 4444/' /etc/ssh/sshd_config
+  - sed -i -e '/^PermitRootLogin/s/^.*$/PermitRootLogin no/' /etc/ssh/sshd_config
+  - sed -i -e '$aAllowUsers mhg' /etc/ssh/sshd_config
+  - systemctl restart ssh
