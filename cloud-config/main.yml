@@ -11,3 +11,37 @@ runcmd:
   - sed -i -e '/^PermitRootLogin/s/^.*$/PermitRootLogin no/' /etc/ssh/sshd_config
   - sed -i -e '$aAllowUsers mhg' /etc/ssh/sshd_config
   - systemctl restart ssh
+  - apt-get install --yes apt-transport-https ca-certificates curl software-properties-common
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+  - add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+  - apt-get update --yes
+  - apt-get install --yes docker-ce
+  - systemctl enable website.service
+  - systemctl start website.service
+write_files:
+- path: /etc/systemd/system/website.service
+  owner: root:root
+  permissions: 0600
+  content: |+
+    [Unit]
+    Description=Mile High Gophers Website
+    Requires=docker.service
+    After=docker.service
+
+    [Service]
+    ExecStartPre=-/usr/bin/docker kill website
+    ExecStartPre=-/usr/bin/docker rm website
+    ExecStartPre=/usr/bin/docker pull milehighgophers/website:latest
+    ExecStart=/usr/bin/docker run --name website \
+                                  -e TARGET=0.0.0.0:80 \
+                                  -e TZ=America/Denver \
+                                  -p 80:80 \
+                                  milehighgophers/website:latest
+    ExecStop=/usr/bin/docker stop website
+    Restart=always
+    User=root
+    TimeoutStartSec=0
+    KillMode=none
+
+    [Install]
+    WantedBy=multi-user.target
